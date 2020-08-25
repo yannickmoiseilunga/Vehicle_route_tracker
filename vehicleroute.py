@@ -8,14 +8,16 @@ from io import BytesIO
 import datetime
 from datetime import timedelta
 from PIL import Image
-
 import pandas
 from pandas import DataFrame
 import numpy
 from dateutil.parser import parse
-
 from pandas.plotting import register_matplotlib_converters
+import matplotlib.gridspec as gridspec
+
 register_matplotlib_converters()
+
+
 
 class Map:
     def __init__(self, points):
@@ -40,8 +42,9 @@ class Map:
         max_zoom = 21   # maximum zoom level based on Google Map API
         world_dimension = {'height': 256, 'width': 256}     # min map size for entire world
 
-        latitudes  = [lat for lat, lng, *rest in self._points]
-        longitudes = [lng for lat, lng, *rest in self._points]
+        latitudes  = self._points['lat']
+        longitudes = self._points['lng']
+        #self._points['tm'] 
     
         # calculate longitude span between east and west
         delta = max(longitudes) - min(longitudes)
@@ -67,8 +70,9 @@ class Map:
         """
         latitudes  = [lat for lat, lng, *rest in self._points]
         longitudes = [lng for lat, lng, *rest in self._points]
-        center_lat = (max((x for x in latitudes))  + min((x for x in latitudes)))  / 2
-        center_lng = (max((x for x in longitudes)) + min((x for x in longitudes))) / 2
+      
+        center_lat = (max((x for x in self._points['lat']))  + min((x for x in self._points['lat'])))  / 2
+        center_lng = (max((x for x in self._points['lng']))  + min((x for x in self._points['lng']))) / 2
         return center_lat, center_lng
 
     @property
@@ -77,40 +81,99 @@ class Map:
         Create an svg data object using matplotlib for altitude chart that can be injected into html template
         :return: altitude_svg; svg data for altitude chart
         """
-        timevar   = [tm for lat, lng, alt, tm, *rest in self._points]
-        altitudes = [alt for lat, lng, alt, *rest in self._points]
-        distances = [dist for *rest, dist in self._points]
-        plt.figure(figsize=(15, 5.5))
-        plt.ylabel('Time')
-        plt.xlabel('Distance')
+        #self._points = all_val
+        #all_val = self._points 
+        self._points = DataFrame(self._points, columns=['lat', 'lng', 'alt', 'tm', 'dist'])
+        #vlc_tm = self._to_velocity(self)
+        self._points['lat']  = pandas.Series(self._points['lat'].astype(float))
+        self._points['lng']  = pandas.Series(self._points['lng'].astype(float))
+        self._points['tm']   = pandas.Series(self._points['tm'])
+        self._points['alt']  = pandas.to_numeric(self._points['alt'],errors='coerce')
+        self._points['dist'] = pandas.to_numeric(self._points['dist'],errors='coerce')
 
-        fig, (ax1, ax2) =  plt.subplots(2)
-        fig.suptitle('Altitude vs. Distance / Time vs. Distance')
+        #df_all_values['Time'] = df_all_values['tm'].values.astype(numpy.int64) / 1e9
+        self._points['Time'] = self._points['tm'].values.astype(numpy.int64) / 1e9
+        #dist_values = df_all_values.diff().fillna(0.)
+        self._points['Time'] = self._points['Time'].diff().fillna(0.)
+        #dist_values[['Speedv','tm']].plot(x='tm', y='Speedv')
+        self._points['Speedv'] = self._points['dist'].diff().fillna(0.) / self._points['Time'] 
+
+        timevar   = self._points['tm'] 
+ 
+        altitudes = self._points['alt']
+        ##v = [t[i+1]-t[i] for i in range(len(self.trackpoints)-1) ]
+        ##distances = [dist for *rest, dist in self._points]
+        distances = self._points['dist']
+        #distancesvar = [distances[i+1]-distances[i] for i in range(len(self._points['dist'])-1) ]
+        distancesvar = self._points['dist'].diff().fillna(0.)
+        speeds = self._points['Speedv']
+        timevar1 = self._points['Time']
+
+        fig, (ax1, ax2, ax3, ax4) =  plt.subplots(4, constrained_layout=False)
         ax1.plot(distances, altitudes)
+        ax1.legend(loc="upper right", title="x vs h", title_fontsize="x-large")
         ax2.plot(distances, timevar)
+        ax2.legend(loc="lower right", title="x vs t", title_fontsize="x-large")
+        ax3.plot(distances, speeds)
+        ax3.legend(loc="lower right", title="x vs v", title_fontsize="x-large")
+        ax4.plot(speeds, timevar)
+        ax4.legend(loc="upper right", title="v vs t", title_fontsize="x-large")
         svg_file = BytesIO()
         plt.savefig(svg_file, format='svg')     # save the file to io.BytesIO
         svg_file.seek(0)
 
+        #altitude_svg = svg_file.getvalue().decode()   # retreive the saved data
         altitude_svg = svg_file.getvalue().decode()   # retreive the saved data
         altitude_svg = '<svg' + altitude_svg.split('<svg')[1]   # strip the xml header
         return altitude_svg
 
-    
     @property
     def altitude_svg1(self):
-        speedvar     = [Speedv for *rest, Speedv in self._points]
-        timevar        = [Time for *rest, Time in self._points]
-        distancesvar = [dist for *rest, dist in self._points]
+        #self._points = all_val
+        #all_val = self._points 
+        self._points = DataFrame(self._points, columns=['lat', 'lng', 'alt', 'tm', 'dist'])
+        #vlc_tm = self._to_velocity(self)
+        self._points['lat']  = pandas.Series(self._points['lat'].astype(float))
+        self._points['lng']  = pandas.Series(self._points['lng'].astype(float))
+        self._points['tm']   = pandas.Series(self._points['tm'])
+        self._points['alt']  = pandas.to_numeric(self._points['alt'],errors='coerce')
+        self._points['dist'] = pandas.to_numeric(self._points['dist'],errors='coerce')
 
-        plt.figure(figsize=(15, 2.5))
-        plt.ylabel('Speed')
-        plt.xlabel('Distance')
-        plt.plot(timevar, speedvar)
+        #df_all_values['Time'] = df_all_values['tm'].values.astype(numpy.int64) / 1e9
+        self._points['Time'] = self._points['tm'].values.astype(numpy.int64) / 1e9
+        #dist_values = df_all_values.diff().fillna(0.)
+        self._points['Time'] = self._points['Time'].diff().fillna(0.)
+        #dist_values[['Speedv','tm']].plot(x='tm', y='Speedv')
+        self._points['Speedv'] = self._points['dist'].diff().fillna(0.) / self._points['Time'] 
+
+        timevar   = self._points['tm'] 
+
+        altitudes = self._points['alt']
+        ##v = [t[i+1]-t[i] for i in range(len(self.trackpoints)-1) ]
+        ##distances = [dist for *rest, dist in self._points]
+        distances = self._points['dist']
+        #distancesvar = [distances[i+1]-distances[i] for i in range(len(self._points['dist'])-1) ]
+        distancesvar = self._points['dist'].diff().fillna(0.)
+        speeds = self._points['Speedv']
+        timevar1 = self._points['Time']
+
+        fig, (ax1, ax2, ax3, ax4, ax5) =  plt.subplots(5, constrained_layout=False)
+        ax1.plot(timevar, distancesvar)
+        ax1.legend(loc="upper right", title="t vs dt", title_fontsize="x-large")
+        ax2.plot(timevar1, distancesvar)
+        ax2.legend(loc="upper right", title="dt vs dt", title_fontsize="x-large")
+        ax3.plot(speeds, distancesvar)
+        ax3.legend(loc="upper right", title="v vs dt", title_fontsize="x-large")
+        ax4.plot(distances, timevar1)
+        ax4.legend(loc="upper right", title="x vs dt", title_fontsize="x-large")
+        ax5.plot(speeds, timevar1)
+        ax5.legend(loc="upper right", title="v vs dt", title_fontsize="x-large")
         svg_file1 = BytesIO()
         plt.savefig(svg_file1, format='svg')     # save the file to io.BytesIO
+        #svg_file1.seek(0)
         svg_file1.seek(1)
 
+        #altitude_svg = svg_file.getvalue().decode()   # retreive the saved data
         altitude_svg1 = svg_file1.getvalue().decode()   # retreive the saved data
         altitude_svg1 = '<svg' + altitude_svg1.split('<svg')[1]   # strip the xml header
         return altitude_svg1
@@ -184,5 +247,4 @@ class Route:
         utc = dt.datetime.strptime(utc_datetime, '%Y-%m-%dT%H:%M:%SZ')
         offset = dt.datetime.utcnow() - dt.datetime.now()
         return (utc - offset).strftime("%Y-%m-%d %H:%M:%S")
-
 
