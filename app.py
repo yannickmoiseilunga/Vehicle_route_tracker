@@ -13,8 +13,7 @@ def index():
     context = {
         "key": app.config['API_KEY'],
         "title": route.title
-        #"velocity": route.vlc_tm,
-        #"velocityb": route.trip_velocity,
+
     }
     return render_template('template.html', map=map, context=context)
 
