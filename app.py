@@ -3,7 +3,7 @@ from flask import Flask, render_template
 
 
 app = Flask(__name__)
-app.config['API_KEY'] = "AIzaSyBvQ0AZSNA9oinBVXD2hGmi7lmjDmVbXsg"
+app.config['API_KEY'] = " "
 route = Route("20180117_023924.tcx.xml")
 map = Map(route.trackpoints)
 
