@@ -9,18 +9,25 @@
         width: 100%
       }
     </style>
-</head>
+  </head>
 <body>
   <div id="map-canvas"></div>
+
   <div id="elevation_chart">{{ map.altitude_svg|safe }}</div>
+  <!--br> </br-->
+  <!--div id="speed_chart">{{ map.altitude_svg1|safe }}</div-->
+  <!--br> </br-->
+  <!--div id="demo">{{ map.altitude_svg1|safe }}</div-->
+  <!--div id="demo1"></div-->
   <script>
     var map;
 
     function showMap() {
       var path = [{{ map.google_coordinates }}];
-      var center = new google.maps.LatLng({{ map.center[0] }}, {{ map.center[1]  }});
+      var center = new google.maps.LatLng({{ map.center[0] }}, {{ map.center[1] }});
+      //var center = new google.maps.LatLng({{ map.center[0] }}, {{ map.center[1] }});
       var zoom = {{ map.zoom }};
-      var trip_velocity = {{ map._vel_road }};
+      //var trip_velocity = {{ map._vel_road }};
 
       map = new google.maps.Map(document.getElementById("map-canvas"), {
           zoom: zoom,
@@ -50,34 +57,22 @@
         label: 'E'
       });
 
-
       var infowindow = new google.maps.InfoWindow({
-        //content:"The vehicle velocity is:" + trip_velocity
-        content:"The vehicle velocity is:" 
-        
-
+        content:"The vehicle velocity is:" + trip_velocity
+        //content:"The vehicle velocity is:" 
       });
 
       infowindow.open(map,marker);
 
-      //<svg height="30" width="200">
-        //<text x="0" y="15" fill="red">The overall velocity is!</text>
-      //</svg>
 
     }
 
-  <div id="demo"></div>
-  <div id="demo1"></div>
   </script>
+
   <script async
       src="https://maps.googleapis.com/maps/api/js?key={{ context.key }}&v=3.31&use_slippy=true&callback=showMap">
   </script>
 
-  <script>
-    var carName = trip_velocity;
-    var trip_velocity = vlc_tm;
-    document.getElementById("demo").innerHTML = trip_velocity;
-    document.getElementById("demo1").innerHTML = carName;
-  </script>
 </body>
+
 </html>
